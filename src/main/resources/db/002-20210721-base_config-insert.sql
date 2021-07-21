@@ -1,0 +1,1 @@
+INSERT INTO `userdb`.`base_config`(`name`, `value`) VALUES ("gateway:rateLimit", "30")

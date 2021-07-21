@@ -1,0 +1,1 @@
+getting config by redis, then by configuration center, then by database, finally by local config file

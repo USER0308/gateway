@@ -1,0 +1,5 @@
+.idea/
+src/main/docker/*.jar
+target/
+*.iml
+src/main/docker/application.yaml
