@@ -1,8 +1,10 @@
 package com.util.redis;
 
 
+import com.google.common.collect.ImmutableList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -67,6 +69,16 @@ public class RedisUtil {
         }
     }
 
+    public void rightPushInList(String key, String value) {
+        redisTemplate.opsForList().rightPush(key, value);
+    }
 
+    public Object leftPopFromList(String key) {
+        return redisTemplate.opsForList().leftPop(key);
+    }
+
+    public Number exec(RedisScript<Number> redisScript, ImmutableList<String> keys, int limitCount, int limitPeriod) {
+        return redisTemplate.execute(redisScript, keys, limitCount, limitPeriod);
+    }
 
 }

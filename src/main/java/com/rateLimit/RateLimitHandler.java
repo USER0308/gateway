@@ -7,13 +7,29 @@ import com.util.redis.RedisUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 限流，每分钟限制请求次数不能超过rateLimit
  */
 @Slf4j
+@Component
 public class RateLimitHandler {
-    @Value("{$gateway.access-rate-limit}")
+    // 限流的个数
+    private static final int maxCount = 10;
+
+    // 指定的时间内
+    private static final int interval = 60;
+
+    // 原子类计数器
+    private AtomicInteger atomicInteger = new AtomicInteger(0);
+
+    // 起始时间
+    private long startTime = System.currentTimeMillis();
+
+    @Value("${gateway.access-rate-limit}")
     private Integer rateLimitInLocal;
 
     @Autowired
@@ -28,6 +44,7 @@ public class RateLimitHandler {
         // get ip address request time from redis, set 0 if not present
         String redisKey = RedisKey.ip.concat(":").concat(ip);
         String ipRequestTime = (String) redisUtil.get(redisKey);
+        log.info("key [{}] for ipRequestTime in redis is [{}]", redisKey, ipRequestTime);
         if (null == ipRequestTime) {
             ipRequestTime = "0";
         }
@@ -35,11 +52,38 @@ public class RateLimitHandler {
         // if bigger than rateLimit, access deny
         if (requestTime > getRateLimit()) {
             log.error("access deny!!!");
-            return;
+            throw new RuntimeException("Access Deny");
         }
         // else requestTime plus 1
         // set request time, and set into redis
-        redisUtil.set(redisKey, requestTime + 1);
+        redisUtil.set(redisKey, String.valueOf(requestTime + 1), interval);
+    }
+
+
+    public void handlePath() {
+        if (!limit(maxCount, interval)) {
+            throw new RuntimeException("Access Deny");
+        }
+    }
+
+    public boolean limit(int maxCount, int interval) {
+        atomicInteger.addAndGet(1);
+        if (atomicInteger.get() == 1) {
+            startTime = System.currentTimeMillis();
+            atomicInteger.addAndGet(1);
+            return true;
+        }
+        // 超过了间隔时间，直接重新开始计数
+        if (System.currentTimeMillis() - startTime > interval * 1000) {
+            startTime = System.currentTimeMillis();
+            atomicInteger.set(1);
+            return true;
+        }
+        // 还在间隔时间内,check有没有超过限流的个数
+        if (atomicInteger.get() > maxCount) {
+            return false;
+        }
+        return true;
     }
 
     private Integer getRateLimit() {
