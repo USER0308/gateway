@@ -12,12 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.script.RedisScript;
-import org.springframework.http.server.ServerHttpRequest;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.lang.reflect.Method;
-import java.util.List;
 
 @Slf4j
 @Aspect
@@ -26,8 +22,6 @@ public class LimitInterceptor {
     private static final String UNKNOWN = "unknown";
     @Autowired
     private RedisUtil redisUtil;
-//    @Autowired
-//    private ServerHttpRequest request;
 
     @Around("execution(public * *(..)) && @annotation(com.rateLimit.Limit)")
     public Object interceptor(ProceedingJoinPoint pjp) {
@@ -40,9 +34,7 @@ public class LimitInterceptor {
         int limitPeriod = limitAnnotation.period();
         int limitCount = limitAnnotation.count();
 
-        /**
-         * 根据限流类型获取不同的key ,如果不传我们会以方法名作为key
-         */
+        // 根据限流类型获取不同的key ,如果不传我们会以方法名作为key
         switch (limitType) {
             case IP:
                 key = getIpAddress();
@@ -73,7 +65,7 @@ public class LimitInterceptor {
         }
     }
 
-    public String buildLuaScript() {
+    private String buildLuaScript() {
         StringBuilder lua = new StringBuilder();
         lua.append("local c");
         lua.append("\nc = redis.call('get',KEYS[1])");
@@ -91,36 +83,8 @@ public class LimitInterceptor {
         return lua.toString();
     }
 
-    public String getIpAddress() {
-//        ServerHttpRequest request = (ServerHttpRequest) ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-//        String ip = request.getHeader("x-forwarded-for");
-//        if (ip == null || ip.length() == 0 || UNKNOWN.equalsIgnoreCase(ip)) {
-//            ip = request.getHeader("Proxy-Client-IP");
-//        }
-//        if (ip == null || ip.length() == 0 || UNKNOWN.equalsIgnoreCase(ip)) {
-//            ip = request.getHeader("WL-Proxy-Client-IP");
-//        }
-//        if (ip == null || ip.length() == 0 || UNKNOWN.equalsIgnoreCase(ip)) {
-//            ip = request.getRemoteAddr();
-//        }
+    private String getIpAddress() {
         String ip = "127.0.0.1";
-//        if (null != request) {
-//            List<String> ips = request.getHeaders().get("x-forwarded-for");
-//            log.info("ips in x-forwarder-for is [{}]", ips);
-//            if (ips == null || ips.size() == 0) {
-//                ips = request.getHeaders().get("Proxy-Client-IP");
-//            }
-//            log.info("ips in Proxy-Client-IP is [{}]", ips);
-//            if (ips == null || ips.size() == 0) {
-//                ips = request.getHeaders().get("WL-Proxy-Client-IP");
-//            }
-//            log.info("ips in WL-Proxy-Client-IP is [{}]", ips);
-//            if (ips == null || ips.size() == 0) {
-//                ip = request.getRemoteAddress().toString();
-//            }
-//        }
-//        log.info("finally ip is [{}]", ip);
-
         return ip;
     }
 }
