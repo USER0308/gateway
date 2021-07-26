@@ -104,7 +104,10 @@ spring:
           filters:
           - AddRequestHeader=X-Request-Env, red
 
-
+eureka:
+  client:
+    service-url:
+      defaultZone:  http://127.0.0.1:2080/eureka
 
 gateway:
   access-rate-limit: 1000
